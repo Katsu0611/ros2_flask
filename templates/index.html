@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ROS2 Robot Controller</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        /* ヘッダーナビゲーション */
+        .navbar {
+            background: rgba(45, 55, 72, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            height: 70px;
+        }
+        
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            color: #e2e8f0;
+            font-size: 1.5rem;
+            font-weight: 700;
+            text-decoration: none;
+        }
+        
+        .nav-brand .logo {
+            margin-right: 12px;
+            font-size: 2rem;
+        }
+        
+        .nav-menu {
+            display: flex;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            gap: 0;
+        }
+        
+        .nav-item {
+            position: relative;
+        }
+        
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            color: #cbd5e0;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        
+        .nav-link:hover {
+            color: #e2e8f0;
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+        
+        .nav-link.active {
+            color: #90cdf4;
+            background: rgba(144, 205, 244, 0.2);
+            position: relative;
+        }
+        
+        .nav-link.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 20px;
+            right: 20px;
+            height: 3px;
+            background: #90cdf4;
+            border-radius: 2px;
+        }
+        
+        .nav-icon {
+            margin-right: 8px;
+            font-size: 1.2rem;
+        }
+        
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #68d391;
+            font-size: 0.9rem;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #68d391;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        /* モバイルメニュー */
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            color: #e2e8f0;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+        
+        /* メインコンテンツ */
+        .main-content {
+            padding: 30px 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        .page-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        
+        .page-header h1 {
+            color: #2d3748;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .page-header p {
+            color: #4a5568;
+            font-size: 1.1rem;
+        }
+        
+        /* ロボット制御セクション */
+        .status-panel {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            border-left: 5px solid #28a745;
+        }
+        
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+        
+        .status-item {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        
+        .status-item h3 {
+            color: #495057;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+        }
+        
+        .status-value {
+            color: #333;
+            font-size: 1.4rem;
+            font-weight: 600;
+        }
+        
+        .control-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .control-panel {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        
+        .control-panel h2 {
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 1.4rem;
+        }
+        
+        .movement-controls {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .move-btn {
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            background: #007bff;
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        
+        .move-btn:hover {
+            background: #0056b3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 123, 255, 0.3);
+        }
+        
+        .move-btn:active {
+            transform: scale(0.98);
+        }
+        
+        .move-btn.stop {
+            background: #dc3545;
+            grid-column: 2;
+        }
+        
+        .move-btn.stop:hover {
+            background: #c82333;
+        }
+        
+        .speed-control {
+            margin-bottom: 20px;
+        }
+        
+        .speed-control label {
+            display: block;
+            color: #495057;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        
+        .speed-control input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .speed-control input:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+        }
+        
+        .custom-command {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .custom-command input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+        
+        .custom-command button {
+            padding: 12px 20px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .custom-command button:hover {
+            background: #218838;
+            transform: translateY(-1px);
+        }
+        
+        .preset-commands {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+        
+        .preset-btn {
+            padding: 8px 12px;
+            font-size: 0.9rem;
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .preset-btn:hover {
+            background: #5a6268;
+            transform: translateY(-1px);
+        }
+        
+        /* レスポンシブデザイン */
+        @media (max-width: 768px) {
+            .nav-menu {
+                display: none;
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                background: rgba(45, 55, 72, 0.98);
+                flex-direction: column;
+                padding: 20px;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            }
+            
+            .nav-menu.active {
+                display: flex;
+            }
+            
+            .mobile-menu-btn {
+                display: block;
+            }
+            
+            .control-section {
+                grid-template-columns: 1fr;
+            }
+            
+            .container {
+                padding: 20px;
+                margin: 10px;
+            }
+            
+            .page-header h1 {
+                font-size: 2rem;
+            }
+            
+            .custom-command {
+                flex-direction: column;
+            }
+        }
+        
+        /* ダークモード対応 */
+        .dark-mode {
+            background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+        }
+        
+        .dark-mode .container {
+            background: rgba(45, 55, 72, 0.95);
+            color: #e2e8f0;
+        }
+        
+        .dark-mode .page-header h1 {
+            color: #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+    <!-- ナビゲーションヘッダー -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-brand">
+                ROS2 Controller
+            </a>
+            
+            <ul class="nav-menu" id="nav-menu">
+                <li class="nav-item">
+                    <a href="/" class="nav-link active">
+                        ロボット制御
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/vision" class="nav-link">
+                        人物検出
+                    </a>
+                </li>
+            </ul>
+            
+            <div class="status-indicator">
+                <div class="status-dot" id="connection-dot"></div>
+                <span id="connection-status">接続確認中</span>
+            </div>
+            
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
+                ☰
+            </button>
+        </div>
+    </nav>
+
+    <!-- メインコンテンツ -->
+    <main class="main-content">
+        <div class="container">
+            <div class="page-header">
+                <h1>ロボット制御システム</h1>
+                <p>リアルタイムロボット操作・監視システム</p>
+            </div>
+            
+            <!-- アラートコンテナ -->
+            <div id="alert-container" style="display: none;"></div>
+            
+            <!-- ロボット状態パネル -->
+            <div class="status-panel">
+                <h2>ロボット状態</h2>
+                <div class="status-grid">
+                    <div class="status-item">
+                        <h3>線速度</h3>
+                        <div class="status-value" id="linear-velocity">0.0 m/s</div>
+                    </div>
+                    <div class="status-item">
+                        <h3>角速度</h3>
+                        <div class="status-value" id="angular-velocity">0.0 rad/s</div>
+                    </div>
+                    <div class="status-item">
+                        <h3>最短距離</h3>
+                        <div class="status-value" id="min-distance">0.0 m</div>
+                    </div>
+                    <div class="status-item">
+                        <h3>最終更新</h3>
+                        <div class="status-value" id="last-update">-</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 制御セクション -->
+            <div class="control-section">
+                <div class="control-panel">
+                    <h2>移動制御</h2>
+                    
+                    <div class="speed-control">
+                        <label for="linear-speed">線速度 (m/s)</label>
+                        <input type="number" id="linear-speed" value="0.5" step="0.1" min="-2" max="2">
+                    </div>
+                    
+                    <div class="speed-control">
+                        <label for="angular-speed">角速度 (rad/s)</label>
+                        <input type="number" id="angular-speed" value="1.0" step="0.1" min="-3" max="3">
+                    </div>
+                    
+                    <div class="movement-controls">
+                        <button class="move-btn" onclick="moveRobot(getLinearSpeed(), 0)">↑ 前進</button>
+                        <button class="move-btn" onclick="moveRobot(0, getAngularSpeed())">↶ 左回転</button>
+                        <button class="move-btn" onclick="moveRobot(0, -getAngularSpeed())">↷ 右回転</button>
+                        <button class="move-btn" onclick="moveRobot(-getLinearSpeed(), 0)">↓ 後退</button>
+                        <button class="move-btn stop" onclick="stopRobot()">停止</button>
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 15px; color: #6c757d; font-size: 0.9rem;">
+                        💡 キーボード操作: WASD / 矢印キー / スペース(停止)
+                    </div>
+                </div>
+                
+                <div class="control-panel">
+                    <h2>コマンド制御</h2>
+                    <p style="color: #6c757d; margin-bottom: 15px;">カスタムROS2コマンドを送信</p>
+                    
+                    <div class="custom-command">
+                        <input type="text" id="command-input" placeholder="例: start_mapping" onkeypress="handleCommandEnter(event)">
+                        <button onclick="sendCustomCommand()">送信</button>
+                    </div>
+                    
+                    <div style="margin-top: 20px;">
+                        <h3>よく使うコマンド</h3>
+                        <div class="preset-commands">
+                            <button class="preset-btn" onclick="sendPresetCommand('start_mapping')">マッピング開始</button>
+                            <button class="preset-btn" onclick="sendPresetCommand('save_map')">マップ保存</button>
+                            <button class="preset-btn" onclick="sendPresetCommand('go_home')">ホームに戻る</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // 設定
+        const API_BASE = '';
+        let statusUpdateInterval;
+        const SHOW_ALERTS = false; // ポップアップを無効化
+
+        // 初期化
+        document.addEventListener('DOMContentLoaded', function() {
+            startStatusUpdates();
+            updateConnectionStatus();
+            setActiveNavItem();
+        });
+
+        // ナビゲーション関連
+        function toggleMobileMenu() {
+            const navMenu = document.getElementById('nav-menu');
+            navMenu.classList.toggle('active');
+        }
+
+        function setActiveNavItem() {
+            const currentPath = window.location.pathname;
+            const navLinks = document.querySelectorAll('.nav-link');
+            
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === currentPath) {
+                    link.classList.add('active');
+                }
+            });
+        }
+
+        // アラート表示（無効化）
+        function showAlert(message, type = 'success') {
+            if (!SHOW_ALERTS) {
+                return;
+            }
+            console.log(`${type.toUpperCase()}: ${message}`);
+        }
+
+        // 接続状態更新
+        function updateConnectionStatus() {
+            const statusEl = document.getElementById('connection-status');
+            const dotEl = document.getElementById('connection-dot');
+            
+            fetch(`${API_BASE}/api/status`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        statusEl.textContent = 'ROS2接続中';
+                        dotEl.style.background = '#68d391';
+                    } else {
+                        statusEl.textContent = '接続エラー';
+                        dotEl.style.background = '#f56565';
+                    }
+                })
+                .catch(error => {
+                    statusEl.textContent = '切断';
+                    dotEl.style.background = '#f56565';
+                });
+        }
+
+        // 状態更新を開始
+        function startStatusUpdates() {
+            updateStatus();
+            statusUpdateInterval = setInterval(updateStatus, 1000);
+            setInterval(updateConnectionStatus, 5000);
+        }
+
+        // ロボット状態を更新
+        async function updateStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/api/status`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const status = data.data;
+                    document.getElementById('linear-velocity').textContent = 
+                        `${status.velocity.linear.toFixed(2)} m/s`;
+                    document.getElementById('angular-velocity').textContent = 
+                        `${status.velocity.angular.toFixed(2)} rad/s`;
+                    document.getElementById('min-distance').textContent = 
+                        `${status.laser_data.min_distance.toFixed(2)} m`;
+                    
+                    const lastUpdate = new Date(status.last_update * 1000);
+                    document.getElementById('last-update').textContent = 
+                        lastUpdate.toLocaleTimeString();
+                }
+            } catch (error) {
+                console.error('Status update failed:', error);
+            }
+        }
+
+        // 速度取得
+        function getLinearSpeed() {
+            return parseFloat(document.getElementById('linear-speed').value) || 0;
+        }
+
+        function getAngularSpeed() {
+            return parseFloat(document.getElementById('angular-speed').value) || 0;
+        }
+
+        // ロボット移動
+        async function moveRobot(linearX, angularZ) {
+            try {
+                const response = await fetch(`${API_BASE}/api/move`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        linear_x: linearX,
+                        angular_z: angularZ
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    highlightSuccess();
+                } else {
+                    console.error('Movement failed:', data.error);
+                }
+            } catch (error) {
+                console.error('通信エラー:', error.message);
+            }
+        }
+
+        // 成功時のハイライト
+        function highlightSuccess() {
+            const statusPanel = document.querySelector('.status-panel');
+            statusPanel.style.borderLeftColor = '#20c997';
+            setTimeout(() => {
+                statusPanel.style.borderLeftColor = '#28a745';
+            }, 200);
+        }
+
+        // ロボット停止
+        async function stopRobot() {
+            try {
+                const response = await fetch(`${API_BASE}/api/stop`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    highlightSuccess();
+                } else {
+                    console.error('Stop failed:', data.error);
+                }
+            } catch (error) {
+                console.error('通信エラー:', error.message);
+            }
+        }
+
+        // カスタムコマンド送信
+        async function sendCustomCommand() {
+            const commandInput = document.getElementById('command-input');
+            const command = commandInput.value.trim();
+            
+            if (!command) {
+                console.warn('コマンドを入力してください');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/command`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ command: command })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    highlightSuccess();
+                    commandInput.value = '';
+                } else {
+                    console.error('Command failed:', data.error);
+                }
+            } catch (error) {
+                console.error('通信エラー:', error.message);
+            }
+        }
+
+        // プリセットコマンド送信
+        async function sendPresetCommand(command) {
+            document.getElementById('command-input').value = command;
+            await sendCustomCommand();
+        }
+
+        // Enterキーでコマンド送信
+        function handleCommandEnter(event) {
+            if (event.key === 'Enter') {
+                sendCustomCommand();
+            }
+        }
+
+        // キーボード制御
+        document.addEventListener('keydown', function(event) {
+            if (document.activeElement.type === 'text' || document.activeElement.type === 'number') {
+                return;
+            }
+            
+            switch(event.key) {
+                case 'ArrowUp':
+                case 'w':
+                case 'W':
+                    event.preventDefault();
+                    moveRobot(getLinearSpeed(), 0);
+                    break;
+                case 'ArrowDown':
+                case 's':
+                case 'S':
+                    event.preventDefault();
+                    moveRobot(-getLinearSpeed(), 0);
+                    break;
+                case 'ArrowLeft':
+                case 'a':
+                case 'A':
+                    event.preventDefault();
+                    moveRobot(0, getAngularSpeed());
+                    break;
+                case 'ArrowRight':
+                case 'd':
+                case 'D':
+                    event.preventDefault();
+                    moveRobot(0, -getAngularSpeed());
+                    break;
+                case ' ':
+                    event.preventDefault();
+                    stopRobot();
+                    break;
+            }
+        });
+
+        // ページ離脱時のクリーンアップ
+        window.addEventListener('beforeunload', function() {
+            if (statusUpdateInterval) {
+                clearInterval(statusUpdateInterval);
+            }
+        });
+    </script>
+</body>
+</html>
